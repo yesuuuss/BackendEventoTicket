@@ -1,13 +1,12 @@
-const { Pool } = require('pg');
 const dns = require('dns');
+dns.setDefaultResultOrder('ipv4first'); 
+
+const { Pool } = require('pg');
 require('dotenv').config();
 
 const pool = new Pool({
-  connectionString: process.env.DATABASE_URL,        
-  ssl: { require: true, rejectUnauthorized: false }, 
-
-  lookup: (hostname, options, cb) =>
-    dns.lookup(hostname, { ...options, family: 4 }, cb),
+  connectionString: process.env.DATABASE_URL,      
+  ssl: { require: true, rejectUnauthorized: false }
 });
 
 module.exports = pool;
