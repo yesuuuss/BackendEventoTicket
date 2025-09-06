@@ -3,7 +3,7 @@ const router = express.Router();
 const pool = require('../config/db');
 const { v4: uuidv4 } = require('uuid');
 const QRCode = require('qrcode');
-const { sendMail } = require('../services/mailer'); // <-- usa tu mailer.js
+const { sendMail } = require('../services/mailer');
 
 // Crear ticket -> Generar QR -> Enviar correo
 router.post('/', async (req, res) => {
