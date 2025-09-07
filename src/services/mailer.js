@@ -1,49 +1,25 @@
-const { Client } = require('pg');  // Solo una vez
-const nodemailer = require('nodemailer');
-require('dotenv').config();  // Solo una vez al principio
+const sql = require('mssql');
+require('dotenv').config(); // Solo una vez al principio
 
-// Conexión a la base de datos de Supabase usando la URL proporcionada
-const client = new Client({
-  connectionString: process.env.DATABASE_URL,
-  ssl: { rejectUnauthorized: false },  // Asegúrate de que SSL esté habilitado
-});
+// Configuración de la conexión a SQL Server usando las variables de entorno
+const config = {
+  user: process.env.DB_USER,
+  password: process.env.DB_PASSWORD,
+  server: process.env.DB_SERVER, // Nombre del servidor o IP de la base de datos
+  database: process.env.DB_DATABASE,
+  options: {
+    encrypt: true, // Para conexiones seguras, por ejemplo con Azure
+    trustServerCertificate: true, // Puedes deshabilitar esto en producción si es necesario
+  }
+};
 
-client.connect()
-  .then(() => {
-    console.log('Conectado a la base de datos!');
-    client.end();
+// Conexión a la base de datos
+sql.connect(config)
+  .then(pool => {
+    console.log('Conectado a la base de datos SQL Server!');
+    return pool; // Aquí puedes hacer tus consultas
   })
-  .catch((error) => {
+  .catch(error => {
     console.error('Error al conectar a la base de datos:', error);
   });
 
-// Configuración de Nodemailer
-const transporter = nodemailer.createTransport({
-  host: process.env.SMTP_HOST,
-  port: process.env.SMTP_PORT,
-  secure: process.env.SMTP_SECURE === 'true',  
-  auth: {
-    user: process.env.SMTP_USER,
-    pass: process.env.SMTP_PASS
-  }
-});
-
-// Función para enviar correos
-async function sendMail({ to, subject, html, text }) {
-  try {
-    const info = await transporter.sendMail({
-      from: `"${process.env.FROM_NAME}" <${process.env.FROM_EMAIL}>`,
-      to,
-      subject,
-      text,
-      html,
-    });
-    console.log('Correo enviado:', info);
-    return info;
-  } catch (error) {
-    console.error('Error al enviar correo:', error);
-    throw new Error('No se pudo enviar el correo. Intenta más tarde.');
-  }
-}
-
-module.exports = { sendMail, transporter };
