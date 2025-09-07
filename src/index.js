@@ -1,5 +1,12 @@
 // src/index.js
 require('dotenv').config();
+function assertEnv(name) {
+  if (!process.env[name]) {
+    console.warn(`[WARN] Falta variable de entorno: ${name}`);
+  }
+}
+['PUBLIC_BASE_URL', 'BREVO_API_KEY', 'FROM_EMAIL'].forEach(assertEnv);
+
 const express = require('express');
 const cors = require('cors');
 
