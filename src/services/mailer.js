@@ -3,25 +3,29 @@ const nodemailer = require('nodemailer');
 require('dotenv').config(); // Solo una vez al principio
 
 // Conexión a la base de datos de Supabase usando la URL proporcionada
+const { Client } = require('pg');
+require('dotenv').config();
+
+
 const client = new Client({
   connectionString: process.env.DATABASE_URL,
-  ssl: { rejectUnauthorized: false }  // Desactiva la validación SSL si es necesario (para producción, se recomienda usar SSL)
+  ssl: { rejectUnauthorized: false },  // Asegúrate de que SSL esté habilitado
 });
 
 client.connect()
   .then(() => {
     console.log('Conectado a la base de datos!');
-    client.end(); // Termina la conexión después de la verificación
+    client.end();
   })
   .catch((error) => {
     console.error('Error al conectar a la base de datos:', error);
   });
 
-// Configuración de transporte de correos usando Nodemailer
+// Configuración de Nodemailer
 const transporter = nodemailer.createTransport({
   host: process.env.SMTP_HOST,
   port: process.env.SMTP_PORT,
-  secure: process.env.SMTP_SECURE === 'true',  // Convierte a booleano si es necesario
+  secure: process.env.SMTP_SECURE === 'true',  
   auth: {
     user: process.env.SMTP_USER,
     pass: process.env.SMTP_PASS
