@@ -90,6 +90,7 @@ if (!/^https?:\/\//i.test(baseUrl)) {
 }
 const checkinUrl = `${baseUrl}/api/checkin?token=${encodeURIComponent(token)}`;
 
+
     // Genera el QR a partir de la URL de check-in
     const qrBuffer = await QRCode.toBuffer(checkinUrl, {
       type: 'png',
