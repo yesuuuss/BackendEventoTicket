@@ -43,7 +43,7 @@ app.use('/api/checkin', checkinRoutes);
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
   console.log(`Servidor escuchando en puerto ${PORT}`);
-  console.log('PUBLIC_BASE_URL:', process.env.PUBLIC_BASE_URL);
+  console.log('PUBLIC_BASE_URL:', process.env.PUBLIC_BASE_URL2);
 
 app.use('/api/_test/sql', require('./routes/_test-sql'));
 

@@ -83,7 +83,7 @@ router.post('/', async (req, res) => {
       { expiresIn: '7d' } // ajusta si quieres
     );
 
-   let baseUrl = process.env.PUBLIC_BASE_URL || `http://localhost:${process.env.PORT || 3000}`;
+   let baseUrl = process.env.PUBLIC_BASE_URL2|| `http://localhost:${process.env.PORT || 3000}`;
 
 if (!/^https?:\/\//i.test(baseUrl)) {
   baseUrl = `https://${baseUrl}`;
