@@ -6,22 +6,44 @@ const FROM_EMAIL    = process.env.FROM_EMAIL;
 const FROM_NAME     = process.env.FROM_NAME || 'Evento Tickets';
 const BREVO_API_KEY = process.env.BREVO_API_KEY;
 
+function normalizeToBase64(input) {
+  if (!input) throw new Error('Attachment vacío');
+  if (Buffer.isBuffer(input)) return input.toString('base64'); // Buffer → base64
+  if (typeof input === 'string') {
+    // Quita prefijo si viene como data URL
+    return input.replace(/^data:.*;base64,/, '');
+  }
+  throw new Error('Attachment no es Buffer ni string base64');
+}
+
+function normalizeAttachments(attachments) {
+  if (!attachments || !attachments.length) return undefined;
+  return attachments.map(a => ({
+    name: a.name || a.filename || 'adjunto',
+    content: normalizeToBase64(a.content)
+  }));
+}
+
 /**
- * Enviar correo vía Brevo API v3 (HTTPS:443)
- * @param {{to:string|string[], subject:string, html?:string, text?:string, attachments?:{name:string, content:string}[]}} p
- *  - attachments.content debe ir en Base64 si adjuntas archivos
+ * Enviar correo vía Brevo API v3
+ * @param {{to:string|string[], subject:string, html?:string, text?:string, attachments?:{name?:string, filename?:string, content:Buffer|string}[]}} p
  */
 async function sendMail({ to, subject, html, text, attachments }) {
   if (!to) throw new Error('Destinatario "to" es requerido');
+  if (!BREVO_API_KEY) throw new Error('Falta BREVO_API_KEY');
+  if (!FROM_EMAIL) throw new Error('Falta FROM_EMAIL');
 
+  const toArray = Array.isArray(to) ? to : [to];
   const payload = {
-    to: (Array.isArray(to) ? to : [to]).map(email => ({ email })),
     sender: { email: FROM_EMAIL, name: FROM_NAME },
+    to: toArray.map(email => ({ email })),
     subject,
     htmlContent: html,
-    textContent: text,
-    attachment: attachments
+    textContent: text
   };
+
+  const brevoAttachments = normalizeAttachments(attachments);
+  if (brevoAttachments) payload.attachment = brevoAttachments;
 
   try {
     const { data } = await axios.post(
@@ -42,7 +64,6 @@ async function sendMail({ to, subject, html, text, attachments }) {
       messageId: data?.messageId || data?.messageIds?.[0]
     };
   } catch (err) {
-    // Log útil y claro
     const code = err.response?.status || err.code;
     const msg  = err.response?.data || err.message;
     console.error('[MailerError][brevo-api]', code, msg);

@@ -1,3 +1,4 @@
+// src/routes/attendees.js
 const express = require('express');
 const router = express.Router();
 const { sql, getPool } = require('../config/mssql');
@@ -5,21 +6,6 @@ const QRCode = require('qrcode');
 const jwt = require('jsonwebtoken');
 const { sendMail } = require('../services/mailer');
 
-/**
- * POST /api/attendees
- * Body:
- * {
- *   "nombre": "Juan Pérez",
- *   "email": "juan@x.com",
- *   "telefono": "+502...",
- *   "asisteIglesia": true,
- *   "iglesiaNombre": "Iglesia Vida",
- *   "sourceCode": "facebook" | "instagram" | "casa_oracion" | "amigo_familiar" | "iglesia_casa_de_elias" | "otro",
- *   "sourceOtherText": null,
- *   "esEquipoCasaDeElias": true,
- *   "equipos": ["servidores","medios"]
- * }
- */
 router.post('/', async (req, res) => {
   try {
     const {
@@ -34,7 +20,7 @@ router.post('/', async (req, res) => {
       equipos
     } = req.body;
 
-    // Validaciones mínimas (el SP también valida)
+    // Validaciones mínimas
     if (!nombre || !sourceCode) {
       return res.status(400).json({ error: 'nombre y sourceCode son obligatorios' });
     }
@@ -49,15 +35,16 @@ router.post('/', async (req, res) => {
     }
 
     const emailNorm = typeof email === 'string' ? email.trim().toLowerCase() : null;
+    const phoneNorm = typeof telefono === 'string' ? telefono.replace(/\s+/g, '') : telefono || null;
     const teamsCsv = Array.isArray(equipos) ? equipos.join(',') : null;
 
     const pool = await getPool();
 
-    // Llamada al Stored Procedure
+    // SP
     const result = await pool.request()
       .input('full_name',              sql.NVarChar(150), nombre)
       .input('email',                  sql.NVarChar(254), emailNorm)
-      .input('phone',                  sql.NVarChar(30),  telefono || null)
+      .input('phone',                  sql.NVarChar(30),  phoneNorm)
       .input('attends_church',         sql.Bit,           !!asisteIglesia)
       .input('church_name',            sql.NVarChar(200), iglesiaNombre || null)
       .input('source_code',            sql.VarChar(50),   sourceCode)
@@ -80,18 +67,17 @@ router.post('/', async (req, res) => {
     const token = jwt.sign(
       { sub: attendeeId, typ: 'attendee', act: 'checkin' },
       process.env.QR_SECRET,
-      { expiresIn: '7d' } // ajusta si quieres
+      { expiresIn: '7d' }
     );
 
-   let baseUrl = process.env.PUBLIC_BASE_URL2|| `http://localhost:${process.env.PORT || 3000}`;
+    // PRODUCCIÓN: forzar siempre https y PUBLIC_BASE_URL2
+    const baseUrl =
+      process.env.PUBLIC_BASE_URL2 ||
+      'https://backendeventoticket-production.up.railway.app';
 
-if (!/^https?:\/\//i.test(baseUrl)) {
-  baseUrl = `https://${baseUrl}`;
-}
-const checkinUrl = `${baseUrl}/api/checkin?token=${encodeURIComponent(token)}`;
+    const checkinUrl = `${baseUrl}/api/checkin?token=${encodeURIComponent(token)}`;
 
-
-    // Genera el QR a partir de la URL de check-in
+    // Genera el QR (Buffer)
     const qrBuffer = await QRCode.toBuffer(checkinUrl, {
       type: 'png',
       width: 512,
@@ -99,32 +85,38 @@ const checkinUrl = `${baseUrl}/api/checkin?token=${encodeURIComponent(token)}`;
       margin: 2
     });
 
-    // Enviar correo con el QR
+    // Enviar correo (si falla email, igual registramos)
+    let emailError = null;
     if (emailNorm) {
-      await sendMail({
-        to: emailNorm,
-        subject: 'Registro confirmado',
-        html: `
-          <p>Hola ${nombre},</p>
-          <p>Tu registro fue recibido. Adjuntamos el <b>QR de asistencia</b>.</p>
-          <p>Al escanearlo, confirmará tu asistencia en el sistema.</p>
-          <p><small>ID: <b>${attendeeId}</b></small></p>
-        `,
-        attachments: [
-          {
-            filename: `checkin-${attendeeId}.png`,
-            content: qrBuffer,
-            contentType: 'image/png'
-          }
-        ]
-      });
+      try {
+        await sendMail({
+          to: emailNorm,
+          subject: 'Registro confirmado',
+          html: `
+            <p>Hola ${nombre},</p>
+            <p>Tu registro fue recibido. Adjuntamos el <b>QR de asistencia</b>.</p>
+            <p>Al escanearlo, confirmará tu asistencia en el sistema.</p>
+            <p><small>ID: <b>${attendeeId}</b></small></p>
+          `,
+          attachments: [
+            {
+              filename: `checkin-${attendeeId}.png`,
+              content: qrBuffer // <-- Buffer; el mailer lo convierte a Base64
+            }
+          ]
+        });
+      } catch (err) {
+        console.error('Fallo envío de correo:', err?.response?.data || err.message || err);
+        emailError = 'Fallo al enviar correo';
+      }
     }
 
     return res.status(201).json({
       ok: true,
       attendeeId,
       checkinUrl,
-      email_enviado: !!emailNorm
+      email_enviado: !!emailNorm && !emailError,
+      ...(emailError ? { email_error: emailError } : {})
     });
 
   } catch (e) {
