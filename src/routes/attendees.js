@@ -83,8 +83,12 @@ router.post('/', async (req, res) => {
       { expiresIn: '7d' } // ajusta si quieres
     );
 
-    const baseUrl = process.env.PUBLIC_BASE_URL || `http://localhost:${process.env.PORT || 3000}`;
-    const checkinUrl = `${baseUrl}/api/checkin?token=${encodeURIComponent(token)}`;
+   let baseUrl = process.env.PUBLIC_BASE_URL || `http://localhost:${process.env.PORT || 3000}`;
+
+if (!/^https?:\/\//i.test(baseUrl)) {
+  baseUrl = `https://${baseUrl}`;
+}
+const checkinUrl = `${baseUrl}/api/checkin?token=${encodeURIComponent(token)}`;
 
     // Genera el QR a partir de la URL de check-in
     const qrBuffer = await QRCode.toBuffer(checkinUrl, {

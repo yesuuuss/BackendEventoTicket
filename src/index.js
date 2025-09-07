@@ -32,11 +32,11 @@ app.get('/health/db', async (_req, res) => {
 const ticketRoutes = require('./routes/tickets');
 app.use('/api/tickets', ticketRoutes);
 
-// 🚀 Nueva ruta: asistentes (SQL Server)
+// Nueva ruta: asistentes (SQL Server)
 const attendeeRoutes = require('./routes/attendees');
 app.use('/api/attendees', attendeeRoutes);
 
-// 🚀 Nueva ruta: check-in (marca asistencia al leer el QR)
+// Nueva ruta: check-in (marca asistencia al leer el QR)
 const checkinRoutes = require('./routes/checkin');
 app.use('/api/checkin', checkinRoutes);
 
@@ -44,4 +44,7 @@ const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
   console.log(`Servidor escuchando en puerto ${PORT}`);
   console.log('PUBLIC_BASE_URL:', process.env.PUBLIC_BASE_URL);
+
+app.use('/api/_test/sql', require('./routes/_test-sql'));
+
 });
