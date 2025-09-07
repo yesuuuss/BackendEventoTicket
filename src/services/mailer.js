@@ -1,71 +1,53 @@
 // src/services/mailer.js
 require('dotenv').config();
-const nodemailer = require('nodemailer');
+const axios = require('axios');
 
-const SMTP_HOST = process.env.SMTP_HOST || 'smtp-relay.brevo.com';
-const SMTP_PORT = Number(process.env.SMTP_PORT || 2525); 
-const SMTP_USER = process.env.SMTP_USER;
-const SMTP_PASS = process.env.SMTP_PASS;
-
-const FROM_EMAIL = process.env.FROM_EMAIL;
-const FROM_NAME  = process.env.FROM_NAME || 'Evento Tickets';
-
-const transporter = nodemailer.createTransport({
-  host: SMTP_HOST,
-  port: SMTP_PORT,
-  secure: false,           
-  requireTLS: true,      
-  auth: { user: SMTP_USER, pass: SMTP_PASS },
-  family: 4,                
-  pool: true,
-  maxConnections: 2,
-  maxMessages: 50,
-  connectionTimeout: 10_000,
-  greetingTimeout: 10_000,
-  socketTimeout: 20_000,
-  tls: {
-    servername: 'smtp-relay.brevo.com',
-    rejectUnauthorized: true
-  }
-});
+const FROM_EMAIL    = process.env.FROM_EMAIL;
+const FROM_NAME     = process.env.FROM_NAME || 'Evento Tickets';
+const BREVO_API_KEY = process.env.BREVO_API_KEY;
 
 /**
- * Enviar correo
- * @param {{to:string, subject:string, html?:string, text?:string, attachments?:Array}} p
+ * Enviar correo vía Brevo API v3 (HTTPS:443)
+ * @param {{to:string|string[], subject:string, html?:string, text?:string, attachments?:{name:string, content:string}[]}} p
+ *  - attachments.content debe ir en Base64 si adjuntas archivos
  */
 async function sendMail({ to, subject, html, text, attachments }) {
   if (!to) throw new Error('Destinatario "to" es requerido');
 
+  const payload = {
+    to: (Array.isArray(to) ? to : [to]).map(email => ({ email })),
+    sender: { email: FROM_EMAIL, name: FROM_NAME },
+    subject,
+    htmlContent: html,
+    textContent: text,
+    attachment: attachments
+  };
+
   try {
-    const info = await transporter.sendMail({
-      from: FROM_NAME ? `${FROM_NAME} <${FROM_EMAIL}>` : FROM_EMAIL,
-      to,
-      subject,
-      html,
-      text,
-      attachments
-    });
-    return { ok: true, provider: 'brevo-smtp', messageId: info.messageId };
+    const { data } = await axios.post(
+      'https://api.brevo.com/v3/smtp/email',
+      payload,
+      {
+        headers: {
+          'api-key': BREVO_API_KEY,
+          'content-type': 'application/json'
+        },
+        timeout: 15000
+      }
+    );
+
+    return {
+      ok: true,
+      provider: 'brevo-api',
+      messageId: data?.messageId || data?.messageIds?.[0]
+    };
   } catch (err) {
-    console.error('[MailerError]', {
-      host: SMTP_HOST,
-      port: SMTP_PORT,
-      code: err.code,
-      command: err.command,
-      message: err.message
-    });
-    throw err;
+    // Log útil y claro
+    const code = err.response?.status || err.code;
+    const msg  = err.response?.data || err.message;
+    console.error('[MailerError][brevo-api]', code, msg);
+    throw new Error(`Brevo API error: ${code}`);
   }
 }
 
-
-async function verifyMailer() {
-  try {
-    await transporter.verify();
-    console.log('SMTP listo (Brevo 2525)');
-  } catch (err) {
-    console.error('Fallo verify SMTP:', err.code || '', err.message);
-  }
-}
-
-module.exports = { sendMail, verifyMailer };
+module.exports = { sendMail };
