@@ -21,7 +21,7 @@ app.use(express.json({ limit: '1mb' }));
 app.get('/api/health', (_req, res) => res.json({ ok: true }));
 
 /* === Home === */
-app.get('/', (_req, res) => res.send('API de Tickets funcionando 🚀'));
+app.get('/', (_req, res) => res.send('API de Tickets funcionando'));
 
 /* === Health DB (MSSQL) — ajusta si usas Postgres === */
 const sql = require('mssql'); // asegúrate de tenerlo en package.json
@@ -74,5 +74,5 @@ process.on('uncaughtException', (err) => {
 const PORT = process.env.PORT || 8080;
 app.listen(PORT, () => {
   console.log(`Servidor escuchando en puerto ${PORT}`);
-  console.log('PUBLIC_BASE_URL:', process.env.PUBLIC_BASE_URL); // unificado
+  console.log('PUBLIC_BASE_URL:', process.env.PUBLIC_BASE_URL2);
 });
