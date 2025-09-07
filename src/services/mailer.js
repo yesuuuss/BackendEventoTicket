@@ -1,12 +1,8 @@
-const { Client } = require('pg');
+const { Client } = require('pg');  // Solo una vez
 const nodemailer = require('nodemailer');
-require('dotenv').config(); // Solo una vez al principio
+require('dotenv').config();  // Solo una vez al principio
 
 // Conexión a la base de datos de Supabase usando la URL proporcionada
-const { Client } = require('pg');
-require('dotenv').config();
-
-
 const client = new Client({
   connectionString: process.env.DATABASE_URL,
   ssl: { rejectUnauthorized: false },  // Asegúrate de que SSL esté habilitado
