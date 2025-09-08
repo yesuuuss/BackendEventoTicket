@@ -87,29 +87,58 @@ router.post('/', async (req, res) => {
 
     // Enviar correo (si falla email, igual registramos)
     let emailError = null;
-    if (emailNorm) {
-      try {
-        await sendMail({
-          to: emailNorm,
-          subject: 'Registro confirmado',
-          html: `
-            <p>Hola ${nombre},</p>
-            <p>Tu registro fue recibido. Adjuntamos el <b>QR de asistencia</b>.</p>
-            <p>Al escanearlo, confirmará tu asistencia en el sistema.</p>
-            <p><small>ID: <b>${attendeeId}</b></small></p>
-          `,
-          attachments: [
-            {
-              filename: `checkin-${attendeeId}.png`,
-              content: qrBuffer // <-- Buffer; el mailer lo convierte a Base64
-            }
-          ]
-        });
-      } catch (err) {
-        console.error('Fallo envío de correo:', err?.response?.data || err.message || err);
-        emailError = 'Fallo al enviar correo';
-      }
-    }
+   if (emailNorm) {
+  try {
+    await sendMail({
+      to: emailNorm,
+      subject: 'Confirmación de registro – Congreso El León Ruge 2025',
+      html: `
+        <div style="font-family: Arial, sans-serif; color: #333; line-height: 1.6; max-width: 600px; margin: auto; padding: 20px; border: 1px solid #eee; border-radius: 8px;">
+          <h2 style="color:#b22222; text-align:center; margin-bottom: 10px;">
+            Congreso <span style="font-weight: bold;">El León Ruge 2025</span>
+          </h2>
+          <p>Hola <b>${nombre}</b>,</p>
+          <p>¡Gracias por registrarte! 🙌<br/>
+          Tu asistencia al <b>Congreso El León Ruge 2025: "Comprados con sangre"</b> ha quedado confirmada.</p>
+
+          <p style="margin: 20px 0; font-size: 15px;">
+            📍 <b>Lugar:</b> Iglesia La Casa de Elías Internacional<br/>
+            1-83 7a. Avenida, Colonia Cotío, Zona 2 Mixco
+          </p>
+
+          <p style="margin: 20px 0; font-size: 15px;">
+            📅 <b>Fecha:</b> Sábado 18 de octubre de 2025
+          </p>
+
+          <p>
+            Adjuntamos tu <b>código QR personal de asistencia</b>.<br/>
+            👉 Al presentarlo en la entrada, se confirmará automáticamente tu registro.
+          </p>
+
+          <p style="margin-top: 30px; font-style: italic;">
+            ✨ Te esperamos con mucha alegría para vivir juntos este tiempo de palabra, adoración y unidad en Cristo.
+          </p>
+
+          <p style="margin-top: 30px;">
+            Bendiciones,<br/>
+            <b>Casa de Elías Internacional</b><br/>
+            Congreso El León Ruge 2025
+          </p>
+        </div>
+      `,
+      attachments: [
+        {
+          filename: `checkin-${attendeeId}.png`,
+          content: qrBuffer // Buffer → mailer.js lo convierte
+        }
+      ]
+    });
+  } catch (err) {
+    console.error('Fallo envío de correo:', err?.response?.data || err.message || err);
+    emailError = 'Fallo al enviar correo';
+  }
+}
+
 
     return res.status(201).json({
       ok: true,
