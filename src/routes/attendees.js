@@ -40,7 +40,6 @@ router.post('/', async (req, res) => {
 
     const pool = await getPool();
 
-    // SP
     const result = await pool.request()
       .input('full_name',              sql.NVarChar(150), nombre)
       .input('email',                  sql.NVarChar(254), emailNorm)
@@ -70,14 +69,14 @@ router.post('/', async (req, res) => {
       { expiresIn: '7d' }
     );
 
-    // PRODUCCIÓN: forzar siempre https y PUBLIC_BASE_URL2
+
     const baseUrl =
       process.env.PUBLIC_BASE_URL2 ||
       'https://backendeventoticket-production.up.railway.app';
 
     const checkinUrl = `${baseUrl}/api/checkin?token=${encodeURIComponent(token)}`;
 
-    // Genera el QR (Buffer)
+
     const qrBuffer = await QRCode.toBuffer(checkinUrl, {
       type: 'png',
       width: 512,
@@ -85,7 +84,7 @@ router.post('/', async (req, res) => {
       margin: 2
     });
 
-    // Enviar correo (si falla email, igual registramos)
+
     let emailError = null;
    if (emailNorm) {
   try {

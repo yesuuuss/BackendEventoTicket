@@ -55,7 +55,7 @@ router.get('/', async (req, res) => {
     }
 
     // Respuesta “humana” (puedes cambiar a JSON si prefieres)
-    const confirmado = row.attendance_confirmed ? 'YA CONFIRMADA' : 'CONFIRMADA AHORA';
+    const confirmado = row.attendance_confirmed ? 'YA EXPIRADA, QR YA ESCANEADO' : 'CONFIRMADA AHORA';
     const cuando = row.attendance_confirmed_at || new Date();
 
     res.setHeader('Content-Type', 'text/html; charset=utf-8');
